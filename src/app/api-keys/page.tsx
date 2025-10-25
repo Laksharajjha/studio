@@ -55,7 +55,7 @@ export default function ApiKeysPage() {
     return keys.filter(
       (key) =>
         key.name.toLowerCase().includes(search.toLowerCase()) ||
-        key.email.toLowerCase().includes(search.toLowerCase())
+        (key.email && key.email.toLowerCase().includes(search.toLowerCase()))
     );
   }, [keys, search]);
 
@@ -66,7 +66,7 @@ export default function ApiKeysPage() {
       setKeys((prevKeys) => [newKey, ...prevKeys]);
       toast({
         title: "API Key Generated!",
-        description: `New key created: ${newKey.key}`,
+        description: `New key created.`,
       });
       return newKey;
     } catch (err: any) {

@@ -52,6 +52,14 @@ export function GenerateKeyModal({
     resolver: zodResolver(formSchema),
     defaultValues: { name: "", email: user?.email || "" },
   });
+  
+  // Update email field if user context changes
+  useEffect(() => {
+    if (user?.email) {
+      form.setValue('email', user.email);
+    }
+  }, [user, form]);
+
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
@@ -87,13 +95,6 @@ export function GenerateKeyModal({
     onOpenChange(open);
   };
   
-  // Update email field if user context changes
-  useState(() => {
-    if (user?.email) {
-      form.setValue('email', user.email);
-    }
-  });
-
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>

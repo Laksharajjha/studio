@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { RevokeKeyDialog } from "./revoke-key-dialog";
-import { useState } from "react";
+import React, { useState } from "react";
 import { getUsage } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 
