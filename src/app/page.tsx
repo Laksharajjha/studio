@@ -1,3 +1,5 @@
+"use client";
+
 import { LandingHeader } from "@/components/landing/landing-header";
 import { Hero } from "@/components/landing/hero";
 import { Features } from "@/components/landing/features";
@@ -5,8 +7,21 @@ import { Pricing } from "@/components/landing/pricing";
 import { Footer } from "@/components/landing/footer";
 import OrbitingCircles from "@/components/ui/aceternity/orbiting-circles";
 import { Lightbulb, Mail, MessageSquare } from "lucide-react";
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/auth-context";
+import { useRouter } from "next/navigation";
 
 export default function LandingPage() {
+  const { isLoggedIn } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      router.push("/dashboard");
+    }
+  }, [isLoggedIn, router]);
+
+
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
       <OrbitingCircles

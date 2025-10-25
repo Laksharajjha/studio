@@ -30,11 +30,12 @@ import type { ApiKey } from "@/lib/types";
 interface GenerateKeyModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onKeyGenerated: (newKey: ApiKey) => void;
+  onKeyGenerated: (name: string, email: string) => Promise<ApiKey>;
 }
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
+  email: z.string().email("Please enter a valid email address."),
 });
 
 export function GenerateKeyModal({
@@ -43,38 +44,31 @@ export function GenerateKeyModal({
   onKeyGenerated,
 }: GenerateKeyModalProps) {
   const { user } = useAuth();
-  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+  const [generatedKey, setGeneratedKey] = useState<ApiKey | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: "" },
+    defaultValues: { name: "", email: user?.email || "" },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    // Simulate key generation
-    const newKeyString = `zelth_sk_${crypto.randomUUID().replace(/-/g, "")}`;
-    setGeneratedKey(newKeyString);
-
-    if (user) {
-      const newKeyObject: ApiKey = {
-        id: `key-${crypto.randomUUID()}`,
-        name: values.name,
-        email: user.email,
-        sends: 0,
-        validations: 0,
-        limit: 1000,
-        active: true,
-        created: new Date().toISOString(),
-      };
-      onKeyGenerated(newKeyObject);
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsLoading(true);
+    try {
+      const newKey = await onKeyGenerated(values.name, values.email);
+      setGeneratedKey(newKey);
+      form.reset();
+    } catch (error) {
+      console.error("Failed to generate key", error);
+    } finally {
+      setIsLoading(false);
     }
-    form.reset();
   };
 
   const handleCopy = () => {
-    if (generatedKey) {
-      navigator.clipboard.writeText(generatedKey);
+    if (generatedKey?.key) {
+      navigator.clipboard.writeText(generatedKey.key);
       setHasCopied(true);
       setTimeout(() => setHasCopied(false), 2000);
     }
@@ -86,10 +80,20 @@ export function GenerateKeyModal({
       setTimeout(() => {
         setGeneratedKey(null);
         setHasCopied(false);
+        setIsLoading(false);
+        form.reset({ name: "", email: user?.email || "" });
       }, 300);
     }
     onOpenChange(open);
   };
+  
+  // Update email field if user context changes
+  useState(() => {
+    if (user?.email) {
+      form.setValue('email', user.email);
+    }
+  });
+
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -111,7 +115,7 @@ export function GenerateKeyModal({
             <div className="relative">
               <Input
                 readOnly
-                value={generatedKey}
+                value={generatedKey.key}
                 className="pr-10 font-mono text-sm"
               />
               <Button
@@ -133,7 +137,7 @@ export function GenerateKeyModal({
           </div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -147,8 +151,23 @@ export function GenerateKeyModal({
                   </FormItem>
                 )}
               />
+               <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="user@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <DialogFooter>
-                <Button type="submit">Generate</Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? "Generating..." : "Generate"}
+                </Button>
               </DialogFooter>
             </form>
           </Form>

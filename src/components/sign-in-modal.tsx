@@ -24,7 +24,9 @@ export function SignInModal({ isOpen, onOpenChange }: SignInModalProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // In a real app, you'd validate credentials here
+    // For now, we just log in with the mock/master key
     login();
+    onOpenChange(false);
   };
 
   return (
@@ -35,7 +37,7 @@ export function SignInModal({ isOpen, onOpenChange }: SignInModalProps) {
             <Icons.logo className="h-7 w-7"/> Zelth
           </DialogTitle>
           <DialogDescription className="text-center">
-            Sign in to access your dashboard.
+            Sign in to access your dashboard. For this demo, credentials are pre-filled.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
@@ -47,6 +49,7 @@ export function SignInModal({ isOpen, onOpenChange }: SignInModalProps) {
               placeholder="dev@zelth.com"
               defaultValue="dev@zelth.com"
               required
+              disabled
             />
           </div>
           <div className="grid gap-2">
@@ -57,6 +60,7 @@ export function SignInModal({ isOpen, onOpenChange }: SignInModalProps) {
               placeholder="••••••••"
               defaultValue="password"
               required
+              disabled
             />
           </div>
           <Button type="submit" className="w-full">

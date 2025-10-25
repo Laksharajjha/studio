@@ -5,6 +5,7 @@ export interface User {
 
 export interface ApiKey {
   id: string;
+  key: string; // The secret key, only returned on creation
   name: string;
   email: string;
   sends: number;

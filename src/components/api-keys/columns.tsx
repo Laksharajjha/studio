@@ -17,10 +17,45 @@ import { MoreHorizontal, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { RevokeKeyDialog } from "./revoke-key-dialog";
 import { useState } from "react";
+import { getUsage } from "@/lib/api";
+import { useAuth } from "@/contexts/auth-context";
 
 type ColumnsProps = {
   onRevoke: (keyId: string) => void;
 }
+
+const UsageCell = ({ row }: { row: any }) => {
+  const { apiKey } = useAuth();
+  const [usage, setUsage] = useState({ sends: row.original.sends, limit: row.original.limit });
+  
+  React.useEffect(() => {
+    const fetchUsage = async () => {
+      if (apiKey) {
+        try {
+          const usageData = await getUsage(apiKey, row.original.id);
+          setUsage({ sends: usageData.sends, limit: usageData.limit });
+        } catch (error) {
+          console.error("Failed to fetch usage for key:", row.original.id, error);
+        }
+      }
+    };
+    
+    // Fetch usage initially and then poll every 30 seconds
+    fetchUsage();
+    const interval = setInterval(fetchUsage, 30000);
+    
+    return () => clearInterval(interval);
+  }, [apiKey, row.original.id]);
+
+  const usagePercentage = (usage.sends / usage.limit) * 100;
+  return (
+    <div className="flex flex-col gap-1.5 w-40">
+        <span className="text-xs text-muted-foreground">{usage.sends} / {usage.limit} sends</span>
+      <Progress value={usagePercentage} className="h-2" />
+    </div>
+  );
+};
+
 
 export const columns = ({ onRevoke }: ColumnsProps): ColumnDef<ApiKey>[] => [
   {
@@ -48,16 +83,7 @@ export const columns = ({ onRevoke }: ColumnsProps): ColumnDef<ApiKey>[] => [
   {
     id: "usage",
     header: "Usage",
-    cell: ({ row }) => {
-      const { sends, limit } = row.original;
-      const usagePercentage = (sends / limit) * 100;
-      return (
-        <div className="flex flex-col gap-1.5 w-40">
-            <span className="text-xs text-muted-foreground">{sends} / {limit} sends</span>
-          <Progress value={usagePercentage} className="h-2" />
-        </div>
-      );
-    },
+    cell: UsageCell,
   },
   {
     accessorKey: "created",

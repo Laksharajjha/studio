@@ -6,11 +6,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 import { CheckCircle, Mail, XCircle } from "lucide-react";
 import { useState } from "react";
-
-const MOCK_OTP = "123456";
+import { useAuth } from "@/contexts/auth-context";
+import { sendOTP, validateOTP } from "@/lib/api";
 
 export default function PlaygroundPage() {
   const [email, setEmail] = useState("");
@@ -19,8 +18,10 @@ export default function PlaygroundPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [validationStatus, setValidationStatus] = useState<"valid" | "invalid" | null>(null);
   const { toast } = useToast();
+  const { apiKey } = useAuth();
 
-  const handleSendOtp = (e: React.FormEvent) => {
+
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
       toast({
@@ -30,38 +31,71 @@ export default function PlaygroundPage() {
       });
       return;
     }
-    setIsLoading(true);
-    setTimeout(() => {
-      setStep("enter-otp");
-      setIsLoading(false);
-      toast({
-        title: "OTP Sent!",
-        description: `A mock OTP has been 'sent' to ${email}. Use 123456 to test.`,
+    if (!apiKey) {
+       toast({
+        variant: "destructive",
+        title: "API Key missing",
+        description: "Cannot send OTP without an API key.",
       });
-    }, 1000);
+      return;
+    }
+    setIsLoading(true);
+    try {
+        await sendOTP(apiKey, { identifier: email, channel: 'email' });
+        setStep("enter-otp");
+        toast({
+            title: "OTP Sent!",
+            description: `An OTP has been sent to ${email}.`,
+        });
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Failed to send OTP",
+            description: error.message || "An unknown error occurred.",
+        });
+    } finally {
+        setIsLoading(false);
+    }
   };
 
-  const handleValidateOtp = (e: React.FormEvent) => {
+  const handleValidateOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+     if (!apiKey) {
+       toast({
+        variant: "destructive",
+        title: "API Key missing",
+        description: "Cannot validate OTP without an API key.",
+      });
+      return;
+    }
     setIsLoading(true);
-    setTimeout(() => {
-      if (otp === MOCK_OTP) {
-        setValidationStatus("valid");
-        toast({
-          title: "Success!",
-          description: "OTP validation successful.",
-          className: "bg-green-600 text-white",
-        });
-      } else {
+    try {
+        const result = await validateOTP(apiKey, { identifier: email, otp });
+        if (result.valid) {
+            setValidationStatus("valid");
+            toast({
+              title: "Success!",
+              description: "OTP validation successful.",
+              className: "bg-green-600 text-white",
+            });
+        } else {
+            setValidationStatus("invalid");
+            toast({
+              variant: "destructive",
+              title: "Validation Failed",
+              description: "The OTP you entered is incorrect.",
+            });
+        }
+    } catch (error: any) {
         setValidationStatus("invalid");
         toast({
-          variant: "destructive",
-          title: "Validation Failed",
-          description: "The OTP you entered is incorrect.",
+            variant: "destructive",
+            title: "Validation Error",
+            description: error.message || "An unknown error occurred during validation.",
         });
-      }
-      setIsLoading(false);
-    }, 1000);
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const handleReset = () => {
@@ -71,12 +105,6 @@ export default function PlaygroundPage() {
     setValidationStatus(null);
   };
   
-  const handleStartOver = () => {
-    setOtp("");
-    setValidationStatus(null);
-    setStep("enter-otp");
-  }
-
   return (
     <AppLayout>
       <div className="flex flex-col gap-8">
@@ -135,7 +163,7 @@ export default function PlaygroundPage() {
                 )}
               </CardContent>
               <CardFooter className="flex-col items-stretch gap-4">
-                <Button type="submit" disabled={isLoading}>
+                <Button type="submit" disabled={isLoading || !apiKey}>
                   {isLoading ? 'Processing...' : step === 'enter-email' ? 'Send OTP' : 'Validate OTP'}
                 </Button>
                 {step === 'enter-otp' && (
