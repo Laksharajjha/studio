@@ -19,6 +19,7 @@ import {
   Book,
   LogOut,
   Settings,
+  FlaskConical,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "./ui/button";
@@ -26,6 +27,7 @@ import { Button } from "./ui/button";
 const navItems = [
   { href: "/dashboard", icon: LayoutGrid, label: "Dashboard" },
   { href: "/api-keys", icon: KeyRound, label: "API Keys" },
+  { href: "/playground", icon: FlaskConical, label: "Playground" },
   { href: "/profile", icon: User, label: "Profile" },
   { href: "/docs", icon: Book, label: "Docs" },
 ];
